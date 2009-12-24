@@ -1,0 +1,11 @@
+<metal:block metal:use-macro="context/@@standard_macros/page">
+  <tal:block metal:fill-slot="columns">
+    <!-- default layout portal contents -->
+  </tal:block>
+  <tal:block metal:fill-slot="workspace">
+    <!-- default layout portal contents -->
+  </tal:block>
+  <tal:block metal:fill-slot="body">
+    <!-- default layout portal contents -->
+  </tal:block>
+</metal:block>

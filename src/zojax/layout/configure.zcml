@@ -1,0 +1,93 @@
+<configure
+   xmlns="http://namespaces.zope.org/zope"
+   xmlns:zcml="http://namespaces.zope.org/zcml"
+   xmlns:zojax="http://namespaces.zope.org/zojax"
+   xmlns:tales="http://namespaces.zope.org/tales"
+   i18n_domain="zojax.layout">
+
+  <zojax:pageletType
+     name="pagelet"
+     interface="zojax.layout.interfaces.IPagelet" />
+
+  <zojax:pageletType
+     name="layout"
+     interface="zojax.layout.interfaces.ILayoutView" />
+
+  <!-- adapter provides IPagelet for (context, request) -->
+  <adapter factory=".pagelet.queryDefaultView" />
+
+  <!-- pagelet: chameleon expression -->
+  <utility
+     name="pagelet"
+     factory=".expressions.PageletTranslator" />
+
+  <!-- pagelet: tales expression -->
+  <tales:expressiontype
+     name="pagelet"
+     handler=".tales.TALESPageletExpression" />
+
+  <!-- @@pagelet view -->
+  <adapter
+     name="pagelet"
+     factory=".pagelet.PageletPublisher" />
+
+  <adapter
+     name="pageletObject"
+     factory=".pagelet.PageletObjectPublisher" />
+
+  <class class=".pagelet.PageletPublisher">
+    <allow
+       attributes="__getitem__"
+       interface="zope.publisher.interfaces.browser.IBrowserPublisher" />
+  </class>
+
+  <!-- default layouts -->
+  <zojax:layout
+     layout="viewspace"
+     for="zope.app.component.site.SiteManagerContainer"
+     description="Default layout, registered for IDefaultBrowserLayer."
+     template="layoutcontent.pt" />
+
+  <zojax:layout
+     name="viewspace"
+     title="Viewspace"
+     layout="workspace"
+     uid="default.viewspace"
+     description="Default viewpsace layout, registered for IDefaultBrowserLayer."
+     for="zope.app.component.site.SiteManagerContainer"
+     template="layoutviewspace.pt" />
+
+  <zojax:layout
+     name="workspace"
+     layout="portal"
+     title="Workspace"
+     uid="default.workspace"
+     description="Default workspace layout, registered for IDefaultBrowserLayer."
+     for="zope.app.component.site.SiteManagerContainer"
+     template="layoutworkspace.pt" />
+
+  <zojax:layout
+     name="portal"
+     title="Portal"
+     uid="default.portal"
+     description="Default portal layout, registered for IDefaultBrowserLayer"
+     for="zope.app.component.site.SiteManagerContainer"
+     class=".layoutportal.DefaultLayoutPortal"
+     template="layoutportal.pt" />
+
+  <!-- Registering documentation with API doc -->
+  <configure
+     xmlns:zcml="http://namespaces.zope.org/zcml"
+     xmlns:apidoc="http://namespaces.zope.org/apidoc"
+     zcml:condition="have apidoc">
+
+    <apidoc:bookchapter
+       id="zojax-layout"
+       title="zojax.layout - Template Layouts"
+       doc_path="README.txt"
+       parent="zojax" />
+  </configure>
+
+  <include file="styles.zcml" />
+
+</configure>

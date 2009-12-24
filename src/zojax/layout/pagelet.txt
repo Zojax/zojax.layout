@@ -1,0 +1,1005 @@
+=================
+Pagelet directive
+=================
+
+Show how we can use the pagelet directive. Register the meta configuration for 
+the directive.
+
+  >>> import os, tempfile, sys
+  >>> from zope import interface, component, schema
+  >>> from zope.configuration import xmlconfig
+  >>> from zojax.layout.interfaces import IPagelet, IPageletType, IPageletContext
+
+  >>> import zojax.layout
+  >>> context = xmlconfig.file('meta.zcml', zojax.layout)
+
+We need also a custom pagelet class:
+
+  >>> from zojax.layout.pagelet import BrowserPagelet
+  >>> class MyPagelet(BrowserPagelet):
+  ...     """Custom pagelet"""
+
+Register a pagelet within the directive with minimal attributes:
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="index.html"
+  ...       class="zojax.layout.TESTS.MyPagelet"
+  ...       permission="zope.Public"
+  ...       />
+  ... </configure>
+  ... """, context)
+
+Let's get the pagelet
+
+  >>> from zope.publisher.browser import TestRequest
+  >>> pagelet = component.queryMultiAdapter(
+  ...     (object(), TestRequest()), name='index.html')
+
+and check them:
+
+  >>> pagelet
+  <zojax.layout.zcml.PageletClass from <class 'zojax.layout.TESTS.MyPagelet'> ...>
+
+  >>> pagelet.context
+  <object object at ...>
+
+Register the pagelet with a different name and more attributes provided from
+the directive. We also use a custom attribute called label here.
+Also we don't use BrowserPagelet as parent class, pagelet directive automaticly
+adds BrowserPagetlet to bases classes. Let's define some more components...
+
+  >>> class SecondPagelet(object):
+  ...     label = u''
+
+  >>> import zope.interface
+  >>> class IContent(zope.interface.Interface):
+  ...     """Content interface."""
+
+  >>> class Content(object):
+  ...     zope.interface.implements(IContent)
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       name="custom.html"
+  ...       class="zojax.layout.TESTS.SecondPagelet"
+  ...       for="zojax.layout.TESTS.IContent"
+  ...       permission="zope.Public"
+  ...       label="my Label" />
+  ... </configure>
+  ... """, context)
+
+Get the pagelet for the new content object
+
+  >>> import zope.component
+  >>> pagelet = zope.component.queryMultiAdapter((Content(), TestRequest()), 
+  ...     name='custom.html')
+
+and check them:
+
+  >>> pagelet
+  <zojax.layout.zcml.PageletClass from <class 'zojax.layout.TESTS.SecondPagelet'> ...>
+
+  >>> pagelet.label
+  u'my Label'
+
+We also can provide another interface then the IPagelet within the directive.
+Such a interface must be inherited from IPagelet.
+
+  >>> class NewPagelet(BrowserPagelet):
+  ...     """New pagelet"""
+
+Now register the pagelet within a interface.
+
+  >>> class INewPagelet(interface.Interface):
+  ...     """New pagelet interface."""
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="new.html"
+  ...       class="zojax.layout.TESTS.NewPagelet"
+  ...       provides="zojax.layout.TESTS.INewPagelet" />
+  ... </configure>
+  ... """, context)
+
+And if we get the pagelet, we can see that the object provides the new 
+pagelet interface:
+
+  >>> pagelet = component.queryMultiAdapter((object(), TestRequest()), 
+  ...     name='new.html')
+  >>> pagelet
+  <zojax.layout.zcml.PageletClass from <class 'zojax.layout.TESTS.NewPagelet'> ...>
+
+  >>> INewPagelet.providedBy(pagelet)
+  True
+
+If any of provides interfaces define schema field, newlly create class
+will have this attribute. Let' redefine INewPagelet interface
+
+  >>> class INewPagelet2(interface.Interface):
+  ...     """New pagelet interface."""
+  ...     
+  ...     number = schema.Int(
+  ...         title = u'Number',
+  ...         required = True)
+
+Because NewPagelet class doesn't have 'number' attribute and we don't
+supply it in directive we get exception.
+
+  >>> xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="new.html"
+  ...       class="zojax.layout.TESTS.NewPagelet"
+  ...       provides="zojax.layout.TESTS.INewPagelet2" />
+  ... </configure>
+  ... """, context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError: ...Required field is missing...number...
+
+Schema can provide default value
+
+  >>> class INewPagelet2(interface.Interface):
+  ...     """New pagelet interface."""
+  ...     
+  ...     number = schema.Int(
+  ...         title = u'Number',
+  ...         required = False,
+  ...         default = 9)
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="new.html"
+  ...       class="zojax.layout.TESTS.NewPagelet"
+  ...       provides="zojax.layout.TESTS.INewPagelet2" />
+  ... </configure>
+  ... """, context)
+
+  >>> pagelet = component.getMultiAdapter(
+  ...     (object(), TestRequest()), IPagelet, name='new.html')
+  >>> print pagelet.number
+  9
+
+Let's provide 'number' in directive
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="new1.html"
+  ...       class="zojax.layout.TESTS.NewPagelet"
+  ...       provides="zojax.layout.TESTS.INewPagelet2"
+  ...       number="10" />
+  ... </configure>
+  ... """, context)
+
+  >>> pagelet = component.getMultiAdapter(
+  ...     (object(), TestRequest()), IPagelet, name='new1.html')
+  >>> print pagelet.number, ':', type(pagelet.number)
+  10 : <type 'int'>
+
+Value should be in right format
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="new1.html"
+  ...       class="zojax.layout.TESTS.NewPagelet"
+  ...       provides="zojax.layout.TESTS.INewPagelet2"
+  ...       number="xxxxx" />
+  ... </configure>
+  ... """, context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError: ...invalid literal for int()...
+
+Schema field should implement IFromUnicode 
+
+  >>> class INewPagelet3(interface.Interface):
+  ...     
+  ...     date = schema.Date(
+  ...         title = u'Date',
+  ...         required = False)
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="new.html"
+  ...       class="zojax.layout.TESTS.NewPagelet"
+  ...       date="2007-10-10"
+  ...       provides="zojax.layout.TESTS.INewPagelet3" />
+  ... </configure>
+  ... """, context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError:...ConfigurationError: ("Can't convert value", 'date')
+
+If pagelet is typed, type schema also checked
+
+  >>> from zope.component.interface import provideInterface
+  >>> provideInterface('newPagelet3', INewPagelet3, IPageletType)
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="new.html"
+  ...       class="zojax.layout.TESTS.NewPagelet"
+  ...       date="2007-10-10"
+  ...       type="newPagelet3" />
+  ... </configure>
+  ... """, context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError:...ConfigurationError: ("Can't convert value", 'date')
+
+
+We can create pagelet without specific class
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="noclass.html" />
+  ... </configure>
+  ... """, context) 
+
+  >>> pagelet = component.queryMultiAdapter(
+  ...     (object(), TestRequest()), name='noclass.html')
+  >>> pagelet
+  <zojax.layout.zcml.PageletClass from None ...>
+
+
+We can create pagelet with template:
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="unknown.html"
+  ...       template="unknown.pt" />
+  ... </configure>
+  ... """, context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError: File "<string>", ...
+  ConfigurationError: ('No such file', '...unknown.pt')
+
+  >>> temp_dir = tempfile.mkdtemp()
+  >>> template = os.path.join(temp_dir, 'pagelet.pt')
+  >>> open(template, 'w').write('''<div>My pagelet</div>''')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       name="template.html"
+  ...       template="%s"
+  ...       permission="zope.Public" />
+  ... </configure>
+  ... """%template, context)
+
+  >>> pagelet = component.queryMultiAdapter((object(), TestRequest()), 
+  ...     name='template.html')
+  >>> pagelet
+  <zojax.layout.zcml.PageletClass from None ...>
+
+  >>> pagelet.template
+  <z3c.pt.pagetemplate.BoundViewPageTemplateFile '...'>
+
+We can create pagelet with additional context
+
+  >>> class IContext2(interface.Interface):
+  ...     """ additional context """
+
+  >>> class Context2(object):
+  ...     interface.implements(IContext2)
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       name="index.html"
+  ...       for="* zojax.layout.TESTS.IContext2" />
+  ... </configure>
+  ... """, context) 
+
+  >>> context2 = Context2()
+
+  >>> c2Pagelet = component.queryMultiAdapter(
+  ...     (object(), context2, TestRequest()), name='index.html')
+  >>> c2Pagelet
+  <zojax.layout.zcml.PageletClass from None ...>
+
+  >>> c2Pagelet.contexts
+  (<zojax.layout.TESTS.Context2 ...>,)
+
+
+Pagelet rendering
+
+  >>> print pagelet.render()
+  <div>My pagelet</div>
+
+We should use page template as template for pagelet or we should
+provide IPagelet adapter for pagelet
+
+  >>> pagelet = component.queryMultiAdapter((object(), TestRequest()), 
+  ...     name='noclass.html')
+  >>> pagelet.render()
+  Traceback (most recent call last):
+  ...
+  LookupError: Can't find IPagelet for this pagelet.
+
+  >>> try:
+  ...     tmp = __file__
+  ... except NameError:
+  ...     from zojax.layout import tests
+  ...     __file__ = tests.__file__
+
+  >>> pageletClass = pagelet.__class__
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pageletType name="pagelet"
+  ...       interface="zojax.layout.interfaces.IPagelet" />
+  ...   <zojax:pagelet
+  ...       type="pagelet"
+  ...       for="zojax.layout.TESTS.pageletClass"
+  ...       template="%s"
+  ...       permission="zope.Public" />
+  ... </configure>
+  ... """%template, context)
+
+  >>> print pagelet()
+  <div>My pagelet</div>
+
+We can redirect during pagelet rendering, in this case render method
+doesn't call.
+
+  >>> pagelet = component.queryMultiAdapter((object(), TestRequest()), 
+  ...     name='noclass.html')
+  >>> pagelet.redirect('/')
+  >>> pagelet.isRedirected
+  True
+  >>> pagelet()
+  u''
+
+We can get default pagelet view for content. First register default view
+
+  >>> try:
+  ...     from zope.component.interfaces import IDefaultViewName
+  ... except:
+  ...     from zope.publisher.interfaces import IDefaultViewName
+  >>> component.getSiteManager().registerAdapter(
+  ...     'index.html', (interface.Interface, interface.Interface),
+  ...     IDefaultViewName)
+
+  >>> view = component.getMultiAdapter(
+  ...     (object(), TestRequest()), zojax.layout.interfaces.IPagelet)
+
+  >>> view
+  <zojax.layout.zcml.PageletClass from <class 'zojax.layout.TESTS.MyPagelet'> ...>
+
+  >>> view.__name__
+  u'index.html'
+
+
+Pagelte Type
+
+pagelet type can't be IPublishTraverse
+
+  >>> from zope.publisher.interfaces import IPublishTraverse
+
+  >>> class IMyPageletType(IPublishTraverse):
+  ...     pass
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pageletType name="pagelet"
+  ...       interface="zojax.layout.TESTS.IMyPageletType" />
+  ... </configure>""", context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError:...ConfigurationError: Can't use IPublishTraverse as base for pagelet type
+
+
+Typed pagelets
+
+  >>> class IMyPagelet2(interface.Interface):
+  ...     pass
+
+  >>> class IMyPagelet3(interface.Interface):
+  ...     pass
+
+  >>> from zojax.layout.tests import ITestPagelet
+
+We need register types
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pageletType name="myPagelet1"
+  ...       interface="zojax.layout.tests.ITestPagelet" />
+  ...   <zojax:pageletType name="myPagelet2"
+  ...       interface="zojax.layout.TESTS.IMyPagelet2" />
+  ...   <zojax:pageletType name="myPagelet3"
+  ...       interface="zojax.layout.TESTS.IMyPagelet3" />
+  ... </configure>""", context)
+
+  >>> template2 = os.path.join(temp_dir, 'pagelet2.pt')
+  >>> open(template2, 'w').write('''<div>My pagelet2</div>''')
+
+  >>> template3 = os.path.join(temp_dir, 'pagelet3.pt')
+  >>> open(template3, 'w').write('''<div>My pagelet3</div>''')
+
+  >>> template4 = os.path.join(temp_dir, 'pagelet4.pt')
+  >>> open(template4, 'w').write('''<div>My pagelet - default</div>''')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       template="%s"
+  ...       type="myPagelet1"
+  ...       permission="zope.Public" />
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       template="%s"
+  ...       type="myPagelet2"
+  ...       permission="zope.Public" />
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       template="%s"
+  ...       type="myPagelet3"
+  ...       permission="zope.Public" />
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       template="%s"
+  ...       type="pagelet"
+  ...       permission="zope.Public" />
+  ... </configure>
+  ... """%(template, template2, template3, template4), context)
+
+  >>> pagelet = component.queryMultiAdapter(
+  ...     (object(), TestRequest()), ITestPagelet)
+  
+  >>> ITestPagelet.providedBy(pagelet)
+  True
+  >>> print pagelet.render()
+  <div>My pagelet</div>
+
+  >>> request = TestRequest()
+  >>> pagelet = component.queryMultiAdapter((object(), request), IMyPagelet2)
+  >>> IMyPagelet2.providedBy(pagelet)
+  True
+  >>> print pagelet.render()
+  <div>My pagelet2</div>
+
+
+Access typed pagelet from view
+
+  >>> publisher = component.getMultiAdapter((object(), request), name='pagelet')
+
+  >>> print publisher.publishTraverse(
+  ...     request, 'test.unknown')
+  Traceback (most recent call last):
+  ...
+  NotFound: Object: ..., name: 'test.unknown'
+
+  >>> publisher.browserDefault(request)
+  (..., ('',))
+
+by default IPagelet
+
+  >>> print publisher()
+  <div>My pagelet - default</div>
+
+  >>> print publisher.publishTraverse(request, '')
+  <div>My pagelet - default</div>
+
+  >>> print publisher.publishTraverse(
+  ...     request, 'zojax.layout.tests.ITestPagelet')
+  <div>My pagelet</div>
+
+We can register our marker interface as named utility and use name
+instead of full module path
+
+  >>> component.provideUtility(
+  ...     ITestPagelet, zojax.layout.interfaces.IPageletType, name='testPageletType')
+  >>> interface.alsoProvides(ITestPagelet, zojax.layout.interfaces.IPageletType)
+
+  >>> print publisher.publishTraverse(request, 'testPageletType')
+  <div>My pagelet</div>
+
+We can provide additional context for pagelet
+
+  >>> def getContexts(content):
+  ...     return Content()
+
+  >>> component.provideAdapter(
+  ...     getContexts, (IContent,), IPageletContext, name='myPagelet4')
+
+  >>> class IMyPagelet4(interface.Interface):
+  ...     pass
+
+  >>> provideInterface('myPagelet4', IMyPagelet4, IPageletType)
+
+  >>> template41 = os.path.join(temp_dir, 'pagelet41.pt')
+  >>> open(template41, 'w').write('''<div>My pagelet4</div>''')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="* zojax.layout.TESTS.IContent"
+  ...       template="%s"
+  ...       type="myPagelet4"
+  ...       permission="zope.Public" />
+  ... </configure>"""%template41, context)
+
+  >>> publisher = component.getMultiAdapter((Content(),request), name='pagelet')
+  >>> print publisher.publishTraverse(request, 'myPagelet4')
+  <div>My pagelet4</div>
+
+Or multiple contexts
+
+  >>> def getContexts2(content):
+  ...     return (Content(), Content())
+
+  >>> component.provideAdapter(
+  ...     getContexts2, (IContent,), IPageletContext, name='myPagelet5')
+
+  >>> class IMyPagelet5(interface.Interface):
+  ...     pass
+
+  >>> provideInterface('myPagelet5', IMyPagelet5, IPageletType)
+
+  >>> template5 = os.path.join(temp_dir, 'pagelet5.pt')
+  >>> open(template5, 'w').write('''<div>My pagelet5</div>''')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="* zojax.layout.TESTS.IContent zojax.layout.TESTS.IContent"
+  ...       template="%s"
+  ...       type="myPagelet5"
+  ...       permission="zope.Public" />
+  ... </configure>"""%template5, context)
+
+  >>> publisher = component.getMultiAdapter((Content(),request), name='pagelet')
+  >>> print publisher.publishTraverse(request, 'myPagelet5')
+  <div>My pagelet5</div>
+
+We can use interface as pagelet 'type'
+
+  >>> class IMyPagelet6(interface.Interface):
+  ...     pass
+
+  >>> provideInterface('myPagelet6', IMyPagelet6, IPageletType)
+
+  >>> template6 = os.path.join(temp_dir, 'pagelet6.pt')
+  >>> open(template6, 'w').write('''<div>My pagelet6</div>''')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       template="%s"
+  ...       type="zojax.layout.TESTS.IMyPagelet6"
+  ...       permission="zope.Public" />
+  ... </configure>"""%template6, context)
+
+  >>> pagelet = component.getMultiAdapter((Content(), request), name='pagelet')
+  >>> print pagelet.publishTraverse(request, 'myPagelet6')
+  <div>My pagelet6</div>
+
+
+we can call named pagelets
+
+  >>> template7 = os.path.join(temp_dir, 'pagelet7.pt')
+  >>> open(template7, 'w').write('''<div>My pagelet7</div>''')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       name="named"
+  ...       for="*"
+  ...       template="%s"
+  ...       type="zojax.layout.TESTS.IMyPagelet6"
+  ...       permission="zope.Public" />
+  ... </configure>"""%template7, context)
+
+  >>> pagelet = component.getMultiAdapter((Content(), request), name='pagelet')
+  >>> print pagelet.publishTraverse(request, 'myPagelet6+named')
+  <div>My pagelet7</div>
+
+
+'pageletObject' - same as 'pagelet' but it doesnt call pagelet render
+
+  >>> pagelet=component.getMultiAdapter((Content(),request),name='pageletObject')
+  >>> pob = pagelet.publishTraverse(request, 'myPagelet6+named')
+  >>> pob
+  <zojax.layout.zcml.PageletClass from None object at ...>
+  >>> print pob.render()
+  <div>My pagelet7</div>
+
+
+We can't register nameless pagelet, we can register only typed pagelet
+without name
+
+  >>> class IWrongPageletInterface(IPagelet):
+  ...     pass
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="*"
+  ...       template="%s"
+  ...       permission="zope.Public" />
+  ... </configure>
+  ... """%template, context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError:...
+      ConfigurationError: Can't create pagelet without name.
+
+If we still need nameless adapter we can use IPagelet interface
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       type="pagelet"
+  ...       for="zojax.layout.TESTS.IContent"
+  ...       template="%s"
+  ...       permission="zope.Public" />
+  ... </configure>
+  ... """%template, context)
+
+
+We can register typed pagelet with name
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       name="test.html"
+  ...       for="zojax.layout.TESTS.IContent"
+  ...       template="%s"
+  ...       type="myPagelet1"
+  ...       permission="zope.Public" />
+  ... </configure>
+  ... """%template, context)
+
+  >>> content = Content()
+  >>> pagelet = component.getMultiAdapter(
+  ...     (content, request), ITestPagelet, name='test.html')
+
+Pagelets with errors
+
+  >>> class PageletWithError(object):
+  ...     def update(self):
+  ...         raise Exception('Error')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="zojax.layout.TESTS.IContent"
+  ...       class="zojax.layout.TESTS.PageletWithError"
+  ...       type="myPagelet2" />
+  ... </configure>
+  ... """, context)
+
+  >>> pagelet = component.getMultiAdapter((content, request), name='pagelet')
+  >>> pagelet.publishTraverse(request, 'myPagelet2')
+  Traceback (most recent call last):
+  ...
+  NotFound: ...
+
+  >>> pagelet('myPagelet2')
+  u''
+
+  >>> pagelet['myPagelet2']
+  Traceback (most recent call last):
+  ...
+  KeyError: 'myPagelet2'
+
+  >>> pagelet = component.getMultiAdapter(
+  ...     (content, request), name='pageletObject')
+  >>> pagelet.publishTraverse(request, 'myPagelet2')
+  Traceback (most recent call last):
+  ...
+  NotFound: ...
+
+
+The TALES `pagelet` expression
+==============================
+
+The ``pagelet`` expression will look up the interaface or IPageletType
+name, call it and return the HTML content. The first step, however, will be to
+register our pagelet with the component architecture:
+
+Let's now create a view using a page template:
+
+  >>> import os, tempfile
+  >>> temp_dir = tempfile.mkdtemp()
+  >>> templateFileName = os.path.join(temp_dir, 'template.pt')
+  >>> open(templateFileName, 'w').write('''
+  ... <html>
+  ...   <body>
+  ...     <h1>My Web Page</h1>
+  ...     <div class="left-column">
+  ...       <tal:block replace="structure pagelet:zojax.layout.tests.ITestPagelet" />
+  ...     </div>
+  ...     <div class="main">
+  ...       Content here
+  ...     </div>
+  ...   </body>
+  ... </html>
+  ... ''')
+
+Also we should register tales expression
+
+  >>> from zojax.layout import tales
+  >>> from zope.app.pagetemplate.metaconfigure import registerType
+  >>> registerType('pagelet', tales.TALESPageletExpression)
+
+Finally we look up the view and render it.
+
+  >>> from zope.app.pagetemplate.simpleviewclass import SimpleViewClass
+
+  >>> FrontPage = SimpleViewClass(templateFileName, name='main.html')
+  >>> component.provideAdapter(
+  ...     FrontPage,
+  ...     (interface.Interface, interface.Interface), interface.Interface,
+  ...     name='main.html')
+
+  >>> view = component.getMultiAdapter((object(), request), name='main.html')
+  >>> print view()
+  <html>
+    <body>
+      <h1>My Web Page</h1>
+      <div class="left-column">
+        <div>My pagelet</div>
+      </div>
+      <div class="main">
+        Content here
+      </div>
+    </body>
+  </html>
+
+Or we can use typed pagelet interface
+
+  >>> open(templateFileName, 'w').write('''
+  ... <html>
+  ...   <body>
+  ...     <h1>My Web Page</h1>
+  ...     <div class="left-column">
+  ...       <tal:block replace="structure pagelet:testPageletType" />
+  ...     </div>
+  ...     <div class="main">
+  ...       Content here
+  ...     </div>
+  ...   </body>
+  ... </html>
+  ... ''')
+
+  >>> FrontPage = SimpleViewClass(templateFileName, name='main.html')
+  >>> component.provideAdapter(
+  ...     FrontPage,
+  ...     (interface.Interface, interface.Interface), interface.Interface,
+  ...     name='main.html')
+
+  >>> view = component.getMultiAdapter((object(), request), name='main.html')
+  >>> print view()
+  <html>
+    <body>
+      <h1>My Web Page</h1>
+      <div class="left-column">
+        <div>My pagelet</div>
+      </div>
+      <div class="main">
+        Content here
+      </div>
+    </body>
+  </html>
+
+Default IPagelet
+
+  >>> open(templateFileName, 'w').write('''
+  ... <html>
+  ...   <body>
+  ...     <h1>My Web Page</h1>
+  ...     <div class="left-column">
+  ...       <tal:block replace="structure pagelet:" />
+  ...     </div>
+  ...     <div class="main">
+  ...       Content here
+  ...     </div>
+  ...   </body>
+  ... </html>
+  ... ''')
+
+  >>> FrontPage = SimpleViewClass(templateFileName, name='main.html')
+  >>> component.provideAdapter(
+  ...     FrontPage,
+  ...     (interface.Interface, interface.Interface), interface.Interface,
+  ...     name='main.html')
+
+  >>> view = component.getMultiAdapter((object(), request), name='main.html')
+  >>> print view()
+  <html>
+    <body>
+      <h1>My Web Page</h1>
+      <div class="left-column">
+        <div>My pagelet - default</div>
+      </div>
+      <div class="main">
+        Content here
+      </div>
+    </body>
+  </html>
+
+
+If pagelet is not exist, just return empty string
+
+  >>> open(templateFileName, 'w').write('''
+  ... <html>
+  ...   <body>
+  ...     <h1>My Web Page</h1>
+  ...     <div class="left-column">
+  ...       <tal:block replace="structure pagelet:test.unknown" />
+  ...     </div>
+  ...     <div class="main">
+  ...       Content here
+  ...     </div>
+  ...   </body>
+  ... </html>
+  ... ''')
+
+  >>> FrontPage = SimpleViewClass(templateFileName, name='main.html')
+  >>> component.provideAdapter(
+  ...     FrontPage,
+  ...     (interface.Interface, interface.Interface), interface.Interface,
+  ...     name='main.html')
+
+  >>> view = component.getMultiAdapter((object(), request), name='main.html')
+  >>> print view()
+  <html>
+    <body>
+      <h1>My Web Page</h1>
+      <div class="left-column">
+      </div>
+      <div class="main">
+        Content here
+      </div>
+    </body>
+  </html>
+
+
+Pagelets with errors
+
+  >>> class PageletWithError(object):
+  ...     def render(self):
+  ...         raise Exception('Error')
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:pagelet
+  ...       for="zojax.layout.TESTS.IContent"
+  ...       class="zojax.layout.TESTS.PageletWithError"
+  ...       type="myPagelet2" />
+  ... </configure>
+  ... """, context)
+
+  >>> open(templateFileName, 'w').write('''
+  ... <html>
+  ...   <body>
+  ...     <h1>My Web Page</h1>
+  ...     <div class="left-column">
+  ...       <tal:block replace="structure pagelet:myPagelet2" />
+  ...     </div>
+  ...     <div class="main">
+  ...       Content here
+  ...     </div>
+  ...   </body>
+  ... </html>
+  ... ''')
+
+  >>> FrontPage = SimpleViewClass(templateFileName, name='error.html')
+  >>> component.provideAdapter(
+  ...     FrontPage,
+  ...     (IContent, interface.Interface), interface.Interface,
+  ...     name='error.html')
+
+  >>> view = component.getMultiAdapter((Content(), request), name='error.html')
+  >>> print view()
+    <html>
+      <body>
+        <h1>My Web Page</h1>
+        <div class="left-column">
+        </div>
+        <div class="main">
+          Content here
+        </div>
+      </body>
+    </html>
+
+Pagelet with extra context
+
+  >>> open(templateFileName, 'w').write('''
+  ... <html>
+  ...   <body>
+  ...     <h1>My Web Page</h1>
+  ...     <div class="left-column">
+  ...       <tal:block replace="structure pagelet:myPagelet4" />
+  ...     </div>
+  ...     <div class="main">
+  ...       Content here
+  ...     </div>
+  ...   </body>
+  ... </html>
+  ... ''')
+
+  >>> FrontPage = SimpleViewClass(templateFileName, name='extra4.html')
+  >>> component.provideAdapter(
+  ...     FrontPage,
+  ...     (IContent, interface.Interface), interface.Interface,
+  ...     name='extra4.html')
+
+  >>> view = component.getMultiAdapter((Content(), request), name='extra4.html')
+  >>> print view()
+  <html>
+    <body>
+      <h1>My Web Page</h1>
+      <div class="left-column">
+        <div>My pagelet4</div>
+      </div>
+      <div class="main">
+        Content here
+      </div>
+    </body>
+  </html>
+
+
+Pagelet with extra context
+
+  >>> open(templateFileName, 'w').write('''
+  ... <html>
+  ...   <body>
+  ...     <h1>My Web Page</h1>
+  ...     <div class="left-column">
+  ...       <tal:block replace="structure pagelet:myPagelet5" />
+  ...     </div>
+  ...     <div class="main">
+  ...       Content here
+  ...     </div>
+  ...   </body>
+  ... </html>
+  ... ''')
+
+  >>> FrontPage = SimpleViewClass(templateFileName, name='extra5.html')
+  >>> component.provideAdapter(
+  ...     FrontPage,
+  ...     (IContent, interface.Interface), interface.Interface,
+  ...     name='extra5.html')
+
+  >>> view = component.getMultiAdapter((Content(), request), name='extra5.html')
+  >>> print view()
+  <html>
+    <body>
+      <h1>My Web Page</h1>
+      <div class="left-column">
+        <div>My pagelet5</div>
+      </div>
+      <div class="main">
+        Content here
+      </div>
+    </body>
+  </html>

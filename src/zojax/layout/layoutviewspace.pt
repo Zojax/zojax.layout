@@ -1,0 +1,1 @@
+<div id="z-portal-viewspace" tal:content="structure view/render"></div>

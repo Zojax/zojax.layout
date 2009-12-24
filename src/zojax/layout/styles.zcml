@@ -1,0 +1,17 @@
+<configure
+   xmlns="http://namespaces.zope.org/zope"
+   xmlns:zcml="http://namespaces.zope.org/zcml"
+   xmlns:zojax="http://namespaces.zope.org/zojax"
+   zcml:condition="installed zojax.resourcepackage">
+
+  <include package="zojax.resourcepackage" file="meta.zcml" />
+  <include package="zojax.resourcepackage" />
+
+  <!-- styles -->
+  <zojax:resourceinclude
+     name="zojax-layout.css"
+     library="zojax"
+     type="stylesheet"
+     file="styles.css" filetype="zrt" />
+
+</configure>

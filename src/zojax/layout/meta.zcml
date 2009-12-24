@@ -1,0 +1,22 @@
+<configure
+   xmlns="http://namespaces.zope.org/zope"
+   xmlns:meta="http://namespaces.zope.org/meta">
+
+  <meta:directives namespace="http://namespaces.zope.org/zojax">
+    <meta:directive
+       name="layout"
+       schema=".zcml.ILayoutDirective"
+       handler=".zcml.layoutDirective" />
+
+    <meta:directive
+       name="pagelet"
+       schema=".zcml.IPageletDirective"
+       handler=".zcml.pageletDirective" />
+
+    <meta:directive
+       name="pageletType"
+       schema=".zcml.IPageletTypeDirective"
+       handler=".zcml.pageletTypeDirective" />
+  </meta:directives>
+
+</configure>
