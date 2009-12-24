@@ -1,0 +1,185 @@
+=======
+CHANGES
+=======
+
+1.6.0 (2008-11-27)
+------------------
+
+- Added 'uid' attribute to zojax:layout directive.
+  Send ILayoutCreatedEvent event only if layout has uid
+
+
+1.5.9 (2008-11-24)
+------------------
+
+- Fixed python2.4 compatibility
+
+
+1.5.7 (2008-11-17)
+------------------
+
+- Update css styles
+
+
+1.5.6 (2008-11-06)
+------------------
+
+- Register nameless pagelet only if provided interface is not
+inherited from IBrowserPublisher
+
+
+1.5.5 (2008-11-05)
+------------------
+
+- Add IPagelet interface to pagelet provides
+
+
+1.5.4 (2008-10-30)
+------------------
+
+- Added 'pagelet' tales expression (same as @@pagelet)
+
+- Update css styles
+
+
+1.5.3 (2008-10-16)
+------------------
+
+- Update css styles
+
+
+1.5.2 (2008-10-15)
+------------------
+
+- Render IPagelet adapter for @@pagelet view
+
+
+1.5.1 (2008-10-14)
+------------------
+
+- Fixed missing NotFount in @@pagelet 
+
+- Log errors in @@pagelet
+
+- Default css styles
+
+
+1.5.0 (2008-10-06)
+------------------
+
+- Added @@pagelet browser view for fast access pagelets
+
+
+1.4.6 (2008-10-03)
+------------------
+
+- Fixed bug with multple nameless pagelet
+
+
+1.4.5 (2008-08-18)
+------------------
+
+- `name` attribute is optional for <zojax:pagelet/> directive
+
+
+1.4.4 (2008-07-22)
+------------------
+
+- Fix IPagelet adapter for content
+
+
+1.4.3 (2008-05-22)
+------------------
+
+- Added LayoutNotFound exception
+
+
+1.4.2 (2008-05-14)
+------------------
+
+- Remove unused interfaces
+
+- Tests updated
+
+
+1.4.1 (2008-04-23)
+------------------
+
+- Use newer version of zojax.autoinclude
+
+
+1.4 (2008-03-21)
+----------------
+
+- Added zojax:pagelet directive
+
+- Code cleanup
+
+- Moved to svn.zope.org
+
+
+1.3.2 (2008-03-06)
+------------------
+
+- Removed context layouts
+
+
+1.3.1 (2008-02-21)
+------------------
+
+- Code cleanup
+
+- Remove code related to zope.formlib
+
+
+1.3.0 (2008-02-20)
+------------------
+
+- Removed code related to z3c.form
+
+
+1.2.1 (2008-02-18)
+------------------
+
+- Added 'redirect' method to IBrowserPagelet, this is usefull
+  when we need redirect during 'update' method and we don't 
+  need render pagelet at all.
+
+- Added adapter to IPagelet for (context, request),
+  this adapter gets browser:defaultView for context and if it IPagelet return it
+
+
+1.2.0 (2008-02-13)
+------------------
+
+- Remove all code related to persistent templates
+
+
+1.1.2 (2008-02-12)
+------------------
+
+- Added 'title' and 'description' fields layout directive
+
+- check ILayoutTemplateTAL for ISite
+
+
+1.1.0 (2008-02-08)
+------------------
+
+- Added compatibility with z3c.template layouts
+
+- Added ILayoutTemplateTAL interface, other packages
+  can define adapter to this interface and change layout template
+  TAL program (layout customization)
+
+
+1.0.1 (2008-02-02)
+------------------
+
+- Added required dependencies
+
+
+1.0.0 (2008-01-15)
+------------------
+
+- Initial release

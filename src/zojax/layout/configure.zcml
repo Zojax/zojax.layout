@@ -1,0 +1,77 @@
+<configure
+   xmlns="http://namespaces.zope.org/zope"
+   xmlns:zcml="http://namespaces.zope.org/zcml"
+   xmlns:zojax="http://namespaces.zope.org/zojax"
+   xmlns:tales="http://namespaces.zope.org/tales"
+   i18n_domain="zojax.layout">
+
+  <includeDependencies package="zojax.layout" />
+
+  <!-- adapter provides IPagelet for (context, request) -->
+  <adapter factory=".pagelet.queryPagelet" />
+
+  <!-- pagelet: tales expression -->
+  <tales:expressiontype
+     name="pagelet"
+     handler=".tales.TALESPageletExpression" />
+
+  <!-- @@pagelet view -->
+  <adapter
+     name="pagelet"
+     factory=".pagelet.PageletPublisher" />
+
+  <class class=".pagelet.PageletPublisher">
+    <allow 
+       attributes="__getitem__"
+       interface="zope.publisher.interfaces.browser.IBrowserPublisher" />
+  </class>
+
+  <!-- default layouts -->
+  <zojax:layout
+     layout="viewspace"
+     for="zope.app.component.interfaces.ISite"
+     description="Default layout, registered for IDefaultBrowserLayer."
+     template="layoutcontent.pt" />
+
+  <zojax:layout
+     name="viewspace"
+     title="Viewspace"
+     layout="workspace"
+     uid="default.viewspace"
+     description="Default viewpsace layout, registered for IDefaultBrowserLayer."
+     for="zope.app.component.interfaces.ISite"
+     template="layoutviewspace.pt" />
+
+  <zojax:layout
+     name="workspace"
+     layout="portal"
+     title="Workspace"
+     uid="default.workspace"
+     description="Default workspace layout, registered for IDefaultBrowserLayer."
+     for="zope.app.component.interfaces.ISite"
+     template="layoutworkspace.pt" />
+
+  <zojax:layout
+     name="portal"
+     title="Portal"
+     uid="default.portal"
+     description="Default portal layout, registered for IDefaultBrowserLayer"
+     for="zope.app.component.interfaces.ISite"
+     template="layoutportal.pt" />
+
+  <!-- Registering documentation with API doc -->
+  <configure
+     xmlns:zcml="http://namespaces.zope.org/zcml"
+     xmlns:apidoc="http://namespaces.zope.org/apidoc"
+     zcml:condition="have apidoc">
+
+    <apidoc:bookchapter
+       id="zojax-layout"
+       title="zojax.layout - Template Layouts"
+       doc_path="README.txt"
+       parent="zojax" />
+  </configure>
+
+  <include file="styles.zcml" />
+
+</configure>

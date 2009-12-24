@@ -1,0 +1,14 @@
+<metal:block metal:use-macro="context/@@standard_macros/page">
+  <div id="z-portal" metal:fill-slot="columns">
+    <tal:block tal:content="structure provider:statusMessage" />
+    <tal:block tal:content="structure view/render" />
+  </div>
+  <div id="z-portal" metal:fill-slot="workspace">
+    <tal:block tal:content="structure provider:statusMessage" />
+    <tal:block tal:content="structure view/render" />
+  </div>
+  <div id="z-portal" metal:fill-slot="body">
+    <tal:block tal:content="structure provider:statusMessage" />
+    <tal:block tal:content="structure view/render" />
+  </div>
+</metal:block>

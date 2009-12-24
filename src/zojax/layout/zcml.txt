@@ -1,0 +1,86 @@
+
+Just tests
+
+  >>> import tempfile, os.path
+  >>> import zojax.layout
+  >>> from zope.configuration import xmlconfig
+  >>> context = xmlconfig.file('meta.zcml', zojax.layout)
+
+  >>> temp_dir = tempfile.mkdtemp()
+  >>> layoutportal = os.path.join(temp_dir, 'layoutportal.pt')
+  >>> open(layoutportal, 'w').write(
+  ... '''<html>
+  ...   <body>
+  ...      <div id="portal" tal:content="structure view/render">
+  ...      </div>
+  ...   </body>
+  ... </html>''')
+
+We should provide template 
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:layout
+  ...     layout="."
+  ...     template="unknown.pt" />
+  ... </configure>""", context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError: ...
+  ... ConfigurationError: ('No such file', ...unknown.pt')
+
+We can register layout for context or for view
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:layout
+  ...     layout="."
+  ...     template="%s" />
+  ... </configure>"""%layoutportal, context)
+  Traceback (most recent call last):
+  ...
+  ZopeXMLConfigurationError: ...
+  ... ConfigurationError: FOR or VIEW are required.
+
+We can register layout for view
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:layout
+  ...     layout="."
+  ...     view="zojax.layout.tests.IFolder1_1_1"
+  ...     template="%s" />
+  ... </configure>"""%layoutportal, context)
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:layout
+  ...     name="layout1"
+  ...     layout="."
+  ...     view="zojax.layout.tests.IFolder1_1_1"
+  ...     template="%s" />
+  ... </configure>"""%layoutportal, context)
+
+We can add custom marker interface for layout
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:layout
+  ...     name="layout2"
+  ...     layout="."
+  ...     view="zojax.layout.tests.IFolder1_1_1"
+  ...     provides="zojax.layout.tests.IFolder1"
+  ...     template="%s" />
+  ... </configure>"""%layoutportal, context)
+
+We can use custom layout class
+
+  >>> context = xmlconfig.string("""
+  ... <configure xmlns:zojax="http://namespaces.zope.org/zojax">
+  ...   <zojax:layout
+  ...     name="layout3"
+  ...     layout="."
+  ...     view="zojax.layout.tests.IFolder1_1_1"
+  ...     class="zojax.layout.tests.MyLayout"
+  ...     template="%s" />
+  ... </configure>"""%layoutportal, context)
