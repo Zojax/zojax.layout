@@ -15,6 +15,6 @@ def raise_template_exception(kwargs=None, exc_info=None, filename=None):
     cls, exc, tb = exc_info
     if issubclass(cls, UserError):
         raise cls, exc, tb
-    return old_raise_template_exception(kwargs=None, exc_info=None, filename=None)
+    return old_raise_template_exception(kwargs=kwargs, exc_info=exc_info, filename=filename)
 
 utils.raise_template_exception = raise_template_exception
