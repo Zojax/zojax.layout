@@ -11,10 +11,10 @@ from chameleon.core import utils
 
 old_raise_template_exception =  utils.raise_template_exception
 
-def raise_template_exception(source, description, kwargs, exc_info):
+def raise_template_exception(kwargs=None, exc_info=None, filename=None):
     cls, exc, tb = exc_info
     if issubclass(cls, UserError):
         raise cls, exc, tb
-    return old_raise_template_exception(source, description, kwargs, exc_info)
+    return old_raise_template_exception(kwargs=None, exc_info=None, filename=None)
 
 utils.raise_template_exception = raise_template_exception
