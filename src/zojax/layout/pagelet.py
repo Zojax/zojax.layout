@@ -15,7 +15,7 @@
 
 $Id$
 """
-import logging, sys
+import logging, sys, re
 from zope import interface, component
 from zope.component import queryUtility, queryAdapter, queryMultiAdapter
 from zope.publisher.browser import BrowserPage
@@ -139,6 +139,14 @@ class BrowserPagelet(BrowserPage):
 
     def __call__(self, *args, **kw):
         self.update()
+
+        # see ticket #415 - workaround for opening links from MS Office products
+        ua = self.request.get('HTTP_USER_AGENT')
+        uri = self.request.get('REQUEST_URI')
+
+        if ua and re.search('[^\w](Word|Excel|PowerPoint|ms-office)([^\w]|\z)', ua, re.I):
+            return u''
+
 
         if self.isRedirected or self.request.response.getStatus() in (302, 303):
             return u''
